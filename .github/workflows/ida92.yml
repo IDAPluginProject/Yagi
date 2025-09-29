@@ -1,0 +1,57 @@
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Build target (win/linux)'
+        required: true
+        default: 'win'
+      build_type:
+        description: 'Build type (Release/Debug)'
+        required: false
+        default: 'Release'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Yagi
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout IDA 9.2 SDK
+        uses: actions/checkout@v4
+        with:
+          repository: HexRaysSA/ida-sdk
+          path: ida-sdk
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake flex bison git
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install winflexbison3 --no-progress -y
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build_yagi \
+            -DIDA_SDK_DIR=${{ github.workspace }}/ida-sdk \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
+
+      - name: Build
+        run: cmake --build build_yagi --target package --config Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yagi-${{ matrix.os }}
+          path: build_yagi/*

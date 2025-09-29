@@ -41,11 +41,9 @@ jobs:
           choco install winflexbison3 --no-progress -y
 
       - name: Configure CMake
-        run: |
-          cmake -S . -B build_yagi \
-            -DIDA_SDK_DIR=${{ github.workspace }}/ida-sdk \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
+        shell: cmd
+        working-directory: ${{ runner.workspace }}\build_yagi
+        run: cmake ..\Yagi -DCMAKE_BUILD_TYPE=Release -DIDA_SDK_SOURCE_DIR=${{ github.workspace }}\ida-sdk -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
 
       - name: Build
         run: cmake --build build_yagi --target package --config Release

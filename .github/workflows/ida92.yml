@@ -3,10 +3,6 @@ name: Build Yagi for IDA 9.2
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: 'Build target (win/linux)'
-        required: true
-        default: 'win'
       build_type:
         description: 'Build type (Release/Debug)'
         required: false
@@ -45,25 +41,20 @@ jobs:
           tar -xf winflexbison.zip -C C:\winflexbison
           echo "C:\winflexbison" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Create build directory
-        run: cmake -E make_directory build_yagi
-
-      - name: Configure CMake
-        working-directory: build_yagi
-        run: cmake ..\Yagi `
-             -DCMAKE_BUILD_TYPE=${{ github.event.inputs.build_type }} `
-             -DIDA_SDK_SOURCE_DIR=${{ github.workspace }}\ida-sdk `
-             -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
-        shell: pwsh
+      - name: Configure CMake (Windows)
         if: matrix.os == 'windows-latest'
+        run: cmake -S ${{ github.workspace }}\Yagi -B build_yagi ^
+             -DCMAKE_BUILD_TYPE=${{ github.event.inputs.build_type }} ^
+             -DIDA_SDK_SOURCE_DIR=${{ github.workspace }}\ida-sdk ^
+             -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
+        shell: cmd
 
       - name: Configure CMake (Linux)
-        working-directory: build_yagi
-        run: cmake ../Yagi \
+        if: matrix.os == 'ubuntu-22.04'
+        run: cmake -S ${{ github.workspace }}/Yagi -B build_yagi \
              -DCMAKE_BUILD_TYPE=${{ github.event.inputs.build_type }} \
              -DIDA_SDK_SOURCE_DIR=${{ github.workspace }}/ida-sdk \
              -DCPACK_PACKAGE_INSTALL_DIRECTORY="IDA Pro 9.2"
-        if: matrix.os == 'ubuntu-22.04'
 
       - name: Build
         run: cmake --build build_yagi --target package --config ${{ github.event.inputs.build_type }}
